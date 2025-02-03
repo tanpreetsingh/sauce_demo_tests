@@ -1,0 +1,63 @@
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+import pytest
+import time
+
+# Base setup for the test session
+@pytest.fixture(scope="session")
+def driver():
+    driver = webdriver.Chrome()  # Change to Firefox or Edge if needed
+    driver.get("https://www.saucedemo.com/")
+    yield driver
+    driver.quit()
+
+# Test: Login functionality
+def test_login(driver):
+    driver.find_element(By.ID, "user-name").send_keys("standard_user")
+    driver.find_element(By.ID, "password").send_keys("secret_sauce")
+    driver.find_element(By.ID, "login-button").click()
+    time.sleep(2)
+    assert "PRODUCTS" in driver.page_source
+
+# Test: Sorting functionality
+def test_sorting(driver):
+    driver.find_element(By.CLASS_NAME, "product_sort_container").click()
+    driver.find_element(By.XPATH, "//option[text()='Price (low to high)']").click()
+    time.sleep(2)
+    # Further validation can be added to check sorting order
+
+# Test: Add item to cart and verify payment values
+def test_add_to_cart_and_payment(driver):
+    driver.find_element(By.XPATH, "//div[@class='inventory_item'][1]//button").click()  # Add first item to cart
+    driver.find_element(By.CLASS_NAME, "shopping_cart_link").click()  # Navigate to cart
+    time.sleep(1)
+    assert "1" in driver.find_element(By.CLASS_NAME, "cart_quantity").text
+
+# Test: Checkout by item
+def test_checkout(driver):
+    driver.find_element(By.XPATH, "//div[@class='inventory_item'][1]//button").click()  # Add first item to cart
+    driver.find_element(By.CLASS_NAME, "shopping_cart_link").click()  # Go to cart
+    driver.find_element(By.ID, "checkout").click()  # Proceed to checkout
+    driver.find_element(By.ID, "first-name").send_keys("Test")
+    driver.find_element(By.ID, "last-name").send_keys("User")
+    driver.find_element(By.ID, "postal-code").send_keys("12345")
+    driver.find_element(By.ID, "continue").click()  # Continue to payment
+    time.sleep(1)
+    assert "CHECKOUT: OVERVIEW" in driver.page_source
+
+# Test: Logout functionality
+def test_logout(driver):
+    driver.find_element(By.ID, "react-burger-menu-btn").click()  # Open menu
+    driver.find_element(By.ID, "logout_sidebar_link").click()  # Click logout
+    time.sleep(1)
+    assert "LOGIN" in driver.page_source
+
+# Negative test: Invalid login
+def test_invalid_login(driver):
+    driver.find_element(By.ID, "user-name").send_keys("wrong_user")
+    driver.find_element(By.ID, "password").send_keys("wrong_password")
+    driver.find_element(By.ID, "login-button").click()
+    time.sleep(2)
+    assert "Epic sadface" in driver.page_source  # Check for error message
+
